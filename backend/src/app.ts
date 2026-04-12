@@ -5,6 +5,9 @@ import helmet from "helmet";
 import authRoutes from "./routes/auth.routes";
 import healthRoutes from "./routes/health.routes";
 import userRoutes from "./routes/user.routes";
+import friendshipRoutes from "./routes/friendship.routes";
+import leaderboardRoutes from "./routes/leaderboard.routes";
+import challengeRoutes from "./routes/challenge.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import { notFoundHandler } from "./middleware/notFound.middleware";
 
@@ -17,6 +20,10 @@ app.use(express.json());
 app.use("/health", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/friendships", friendshipRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/challenges", challengeRoutes);
+app.use("/api/challenge-categories", challengeRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

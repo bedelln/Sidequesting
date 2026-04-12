@@ -13,7 +13,8 @@ const registerSchema = z.object({
     .max(30, "Username must be at most 30 characters long")
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores"),
   email: z.string().trim().email("A valid email is required"),
-  password: z.string().min(8, "Password must be at least 8 characters long").max(72)
+  password: z.string().min(8, "Password must be at least 8 characters long").max(72),
+  displayName: z.string().trim().min(1, "Display name is required").max(50)
 });
 
 const loginSchema = z.object({
@@ -25,6 +26,9 @@ type SafeUser = {
   id: string;
   username: string;
   email: string;
+  displayName: string;
+  avatarUrl: string;
+  xp: number;
   createdAt: Date;
 };
 
@@ -33,6 +37,9 @@ function toSafeUser(user: SafeUser): SafeUser {
     id: user.id,
     username: user.username,
     email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    xp: user.xp,
     createdAt: user.createdAt
   };
 }
@@ -61,7 +68,8 @@ export async function registerUser(input: unknown) {
     data: {
       username: data.username,
       email,
-      passwordHash
+      passwordHash,
+      displayName: data.displayName
     }
   });
 
