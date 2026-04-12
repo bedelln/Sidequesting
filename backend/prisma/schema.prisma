@@ -12,5 +12,75 @@ model User {
   username     String   @unique
   email        String   @unique
   passwordHash String
+  displayName  String
+  avatarUrl    String   @default("")
+  xp           Int      @default(0)
   createdAt    DateTime @default(now())
+
+  // Relationships
+  sentFriendRequests     Friendship[]         @relation("FriendshipRequester")
+  receivedFriendRequests Friendship[]         @relation("FriendshipAddressee")
+  sentChallenges         Challenge[]          @relation("ChallengeSender")
+  receivedChallenges     ChallengeRecipient[]
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  requesterId String
+  addresseeId String
+  status      String   @default("pending") // 'pending', 'accepted', 'declined'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId])
+  @@index([addresseeId])
+  @@index([status])
+}
+
+model ChallengeCategory {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  icon      String
+  color     String
+  xpReward  Int         @default(10)
+  challenges Challenge[]
+}
+
+model Challenge {
+  id          String    @id @default(cuid())
+  senderId    String
+  categoryId  String
+  title       String
+  description String
+  xpReward    Int
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  sender     User                 @relation("ChallengeSender", fields: [senderId], references: [id], onDelete: Cascade)
+  category   ChallengeCategory    @relation(fields: [categoryId], references: [id])
+  recipients ChallengeRecipient[]
+
+  @@index([senderId])
+  @@index([categoryId])
+}
+
+model ChallengeRecipient {
+  id          String    @id @default(cuid())
+  challengeId String
+  recipientId String
+  status      String    @default("pending") // 'pending', 'accepted', 'completed', 'declined'
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  recipient User      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, recipientId])
+  @@index([recipientId])
+  @@index([status])
 }

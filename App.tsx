@@ -1,179 +1,154 @@
-import { useState } from "react";
-import {
-  ActivityIndicator,
-  Button,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { User, Tab } from "./src/types";
+import { api } from "./src/services/api";
+import { GlobalStyles } from "./src/styles/GlobalStyles";
+import { Spinner } from "./src/components/Common";
+import { Toast, XpFloat } from "./src/components/Feedback";
+import { BottomNav } from "./src/components/BottomNav";
+import { AuthView } from "./src/views/AuthView";
+import { QuestBoardView } from "./src/views/QuestBoardView";
+import { GuildRosterView } from "./src/views/GuildRosterView";
+import { HallOfFameView } from "./src/views/HallOfFameView";
+import { ProfileView } from "./src/views/ProfileView";
 
-// Replace YOUR_LOCAL_IP with your computer's local network IP, for example:
-// const API_BASE_URL = "http://192.168.1.25:4000";
-// Do not use localhost here. On a phone or emulator, localhost points to that device,
-// not to the computer where your backend server is running.
-const API_BASE_URL = "http://localhost:4000";
-
+/**
+ * Main application entry point for Sidequesting.
+ * Handles high-level state management, authentication routing, and notifications.
+ */
 export default function App() {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [responseText, setResponseText] = useState("Responses will appear here.");
-  const [loading, setLoading] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [tab, setTab] = useState<Tab>("quests");
+  const [friends, setFriends] = useState<User[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const [xpFloats, setXpFloats] = useState<{ id: number; xp: number; x: number; y: number }[]>([]);
+  const floatId = useRef(0);
 
-  const formatResponse = (title: string, data: unknown) => {
-    return `${title}\n\n${JSON.stringify(data, null, 2)}`;
-  };
+  const [inboxCount, setInboxCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
 
-  const handleRegister = async () => {
-    setLoading(true);
-    setResponseText("Registering...");
+  // Poll for notifications (new quests and friend requests) every 15 seconds.
+  useEffect(() => {
+    if (!currentUser) return;
+    const fetchCounts = async () => {
+      try {
+        const [inbox, pending] = await Promise.all([
+          api.challenges.inbox(),
+          api.friends.listPending()
+        ]);
+        setInboxCount(inbox.filter(q => q.recipientStatus === "pending").length);
+        setPendingCount(pending.length);
+      } catch (e) { /* ignore silently */ }
+    };
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 15000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-        }),
+  // Check for existing authentication token on initial load.
+  useEffect(() => {
+    const token = localStorage.getItem("sq_token");
+    if (token) {
+      api.challenges.me().then(user => {
+        setCurrentUser(user);
+        setIsReady(true);
+      }).catch(() => {
+        // If token is invalid or expired, clear it.
+        localStorage.removeItem("sq_token");
+        setIsReady(true);
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Register request failed");
-      }
-
-      setResponseText(formatResponse("Register success", data));
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Something went wrong";
-      setResponseText(`Register error\n\n${message}`);
-    } finally {
-      setLoading(false);
+    } else {
+      setIsReady(true);
     }
+  }, []);
+
+  const handleAuthSuccess = (user: User) => {
+    setCurrentUser(user);
   };
 
-  const handleLogin = async () => {
-    setLoading(true);
-    setResponseText("Logging in...");
+  const showToast = useCallback((msg: string) => {
+    setToast(msg);
+  }, []);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          identifier: email,
-          password,
-        }),
-      });
+  const handleXpGain = useCallback((xp: number, x: number, y: number) => {
+    const id = floatId.current++;
+    setXpFloats((prev) => [...prev, { id, xp, x, y }]);
+    // Optionally refresh user XP from backend
+    api.challenges.me().then(setCurrentUser).catch(() => {});
+  }, []);
 
-      const data = await response.json();
+  const removeFloat = useCallback((id: number) => {
+    setXpFloats((prev) => prev.filter((f) => f.id !== id));
+  }, []);
 
-      if (!response.ok) {
-        throw new Error(data.message || "Login request failed");
-      }
+  if (!isReady) return <div style={{ height: "100%", display: "flex", alignItems: "center" }}><Spinner /></div>;
 
-      setResponseText(formatResponse("Login success", data));
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Something went wrong";
-      setResponseText(`Login error\n\n${message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!currentUser) return (
+    <>
+      <GlobalStyles />
+      <AuthView onAuthSuccess={handleAuthSuccess} />
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+    </>
+  );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>SideQuesters Demo</Text>
+    <>
+      <GlobalStyles />
 
-        <TextInput
-          value={username}
-          onChangeText={setUsername}
-          placeholder="Username (register only)"
-          autoCapitalize="none"
-          style={styles.input}
+      {/* Background ambient glow */}
+      <div style={{
+        position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+        background: `
+          radial-gradient(ellipse 60% 40% at 20% 10%, rgba(240,192,64,0.04) 0%, transparent 70%),
+          radial-gradient(ellipse 50% 50% at 80% 90%, rgba(45,224,176,0.04) 0%, transparent 70%)
+        `,
+      }} />
+
+      <div style={{
+        position: "relative", zIndex: 1,
+        display: "flex", flexDirection: "column",
+        height: "100svh", maxWidth: 600, margin: "0 auto",
+        overflow: "hidden",
+      }}>
+        {/* Views */}
+        <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
+          {tab === "quests" && (
+            <QuestBoardView
+              currentUser={currentUser}
+              friends={friends}
+              onXpGain={handleXpGain}
+              onToast={showToast}
+            />
+          )}
+          {tab === "guild" && (
+            <GuildRosterView
+              onToast={showToast}
+              onFriendsChange={setFriends}
+            />
+          )}
+          {tab === "fame" && (
+            <HallOfFameView currentUserId={currentUser.id} />
+          )}
+          {tab === "profile" && (
+            <ProfileView currentUser={currentUser} onXpGain={handleXpGain} />
+          )}
+        </div>
+
+        <BottomNav
+          tab={tab}
+          setTab={setTab}
+          inboxCount={inboxCount}
+          pendingCount={pendingCount}
         />
+      </div>
 
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Email"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={styles.input}
-        />
+      {/* Toast */}
+      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
 
-        <TextInput
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Password"
-          autoCapitalize="none"
-          secureTextEntry
-          style={styles.input}
-        />
-
-        <View style={styles.button}>
-          <Button title="Register" onPress={handleRegister} disabled={loading} />
-        </View>
-
-        <View style={styles.button}>
-          <Button title="Login" onPress={handleLogin} disabled={loading} />
-        </View>
-
-        {loading ? <ActivityIndicator size="small" /> : null}
-
-        <Text style={styles.responseLabel}>Response</Text>
-        <Text selectable style={styles.responseBox}>
-          {responseText}
-        </Text>
-      </ScrollView>
-    </SafeAreaView>
+      {/* XP Floats */}
+      {xpFloats.map((f) => (
+        <XpFloat key={f.id} xp={f.xp} x={f.x} y={f.y} onDone={() => removeFloat(f.id)} />
+      ))}
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#fff",
-  },
-  container: {
-    padding: 16,
-    gap: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    borderRadius: 4,
-  },
-  button: {
-    marginTop: 4,
-  },
-  responseLabel: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 12,
-  },
-  responseBox: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 12,
-    minHeight: 180,
-  },
-});
