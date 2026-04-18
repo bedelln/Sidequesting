@@ -204,8 +204,8 @@ export async function searchUsers(currentUserId: string, searchQuery: string) {
         { id: { not: currentUserId } },
         {
           OR: [
-            { username: { contains: searchQuery, mode: "insensitive" } },
-            { displayName: { contains: searchQuery, mode: "insensitive" } }
+            { username: { contains: searchQuery } },
+            { displayName: { contains: searchQuery } }
           ]
         }
       ]

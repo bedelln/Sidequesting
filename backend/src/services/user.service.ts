@@ -7,7 +7,9 @@ export async function getCurrentUser(userId: string) {
     select: {
       id: true,
       username: true,
-      email: true,
+      displayName: true,
+      avatarUrl: true,
+      xp: true,
       createdAt: true
     }
   });

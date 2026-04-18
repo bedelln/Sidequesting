@@ -73,7 +73,10 @@ export async function registerUser(input: unknown) {
     }
   });
 
-  return toSafeUser(user);
+  return {
+    token: signAccessToken(user.id),
+    user: toSafeUser(user)
+  };
 }
 
 export async function loginUser(input: unknown) {

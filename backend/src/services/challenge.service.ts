@@ -18,6 +18,12 @@ const updateChallengeRecipientStatusSchema = z.object({
   })
 });
 
+const respondToChallengeSchema = z.object({
+  status: z.enum(["accepted", "declined"], {
+    errorMap: () => ({ message: "Status must be 'accepted' or 'declined'" })
+  })
+});
+
 export async function getChallengeCategories() {
   const categories = await prisma.challengeCategory.findMany({
     orderBy: { name: "asc" }
@@ -109,11 +115,11 @@ export async function createChallenge(senderId: string, input: unknown) {
   return challenge;
 }
 
-export async function getIncomingChallenges(userId: string) {
+async function getChallengesByStatuses(userId: string, statuses: Array<"pending" | "accepted">) {
   const challengeRecipients = await prisma.challengeRecipient.findMany({
     where: {
       recipientId: userId,
-      status: { in: ["pending", "accepted"] }
+      status: { in: statuses }
     },
     include: {
       challenge: {
@@ -141,6 +147,130 @@ export async function getIncomingChallenges(userId: string) {
     completedAt: cr.completedAt,
     ...cr.challenge
   }));
+}
+
+export async function getPendingChallenges(userId: string) {
+  return getChallengesByStatuses(userId, ["pending"]);
+}
+
+export async function getActiveChallenges(userId: string) {
+  return getChallengesByStatuses(userId, ["accepted"]);
+}
+
+function mapChallengeRecipient(challengeRecipient: {
+  id: string;
+  status: string;
+  completedAt: Date | null;
+  challenge: {
+    id: string;
+    senderId: string;
+    categoryId: string;
+    title: string;
+    description: string;
+    xpReward: number;
+    expiresAt: Date | null;
+    createdAt: Date;
+    category?: unknown;
+    sender?: unknown;
+  };
+}) {
+  return {
+    recipientRecordId: challengeRecipient.id,
+    recipientStatus: challengeRecipient.status,
+    completedAt: challengeRecipient.completedAt,
+    ...challengeRecipient.challenge
+  };
+}
+
+async function updateChallengeStatusForCurrentUser(
+  challengeId: string,
+  userId: string,
+  status: "accepted" | "declined" | "completed"
+) {
+  const challengeRecipient = await prisma.challengeRecipient.findUnique({
+    where: {
+      challengeId_recipientId: {
+        challengeId,
+        recipientId: userId
+      }
+    },
+    include: {
+      challenge: true,
+      recipient: true
+    }
+  });
+
+  if (!challengeRecipient) {
+    throw new ApiError(404, "Challenge not found");
+  }
+
+  if (status === "accepted" || status === "declined") {
+    if (challengeRecipient.status !== "pending") {
+      throw new ApiError(400, "This challenge has already been responded to");
+    }
+  }
+
+  if (status === "completed") {
+    if (challengeRecipient.status !== "accepted") {
+      throw new ApiError(400, "Only accepted challenges can be completed");
+    }
+  }
+
+  const completedAt = status === "completed" ? new Date() : null;
+
+  const updatedRecipient = await prisma.$transaction(async (tx) => {
+    const updated = await tx.challengeRecipient.update({
+      where: {
+        challengeId_recipientId: {
+          challengeId,
+          recipientId: userId
+        }
+      },
+      data: {
+        status,
+        completedAt
+      },
+      include: {
+        challenge: {
+          include: {
+            category: true,
+            sender: {
+              select: {
+                id: true,
+                username: true,
+                displayName: true,
+                avatarUrl: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (status === "completed") {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          xp: {
+            increment: challengeRecipient.challenge.xpReward
+          }
+        }
+      });
+    }
+
+    return updated;
+  });
+
+  return mapChallengeRecipient(updatedRecipient);
+}
+
+export async function respondToChallenge(challengeId: string, userId: string, input: unknown) {
+  const data = respondToChallengeSchema.parse(input);
+  return updateChallengeStatusForCurrentUser(challengeId, userId, data.status);
+}
+
+export async function completeChallenge(challengeId: string, userId: string) {
+  return updateChallengeStatusForCurrentUser(challengeId, userId, "completed");
 }
 
 export async function updateChallengeRecipientStatus(
@@ -174,53 +304,5 @@ export async function updateChallengeRecipientStatus(
     throw new ApiError(403, "You are not authorized to update this challenge");
   }
 
-  // Update status
-  const completedAt = data.status === "completed" ? new Date() : null;
-
-  const updatedRecipient = await prisma.$transaction(async (tx) => {
-    // Update the recipient status
-    const updated = await tx.challengeRecipient.update({
-      where: {
-        challengeId_recipientId: {
-          challengeId,
-          recipientId
-        }
-      },
-      data: {
-        status: data.status,
-        completedAt
-      },
-      include: {
-        challenge: {
-          include: {
-            category: true,
-            sender: {
-              select: {
-                id: true,
-                username: true,
-                displayName: true,
-                avatarUrl: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // If completed, award XP to the user (LB-1)
-    if (data.status === "completed") {
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          xp: {
-            increment: challengeRecipient.challenge.xpReward
-          }
-        }
-      });
-    }
-
-    return updated;
-  });
-
-  return updatedRecipient;
+  return updateChallengeStatusForCurrentUser(challengeId, userId, data.status);
 }

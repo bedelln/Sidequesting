@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, GuildTab, Friendship } from '../types';
 import { useAsync } from '../hooks/useAsync';
 import { api } from '../services/api';
-import { MOCK_FRIENDSHIPS, MOCK_PENDING, MOCK_CATEGORIES } from '../mocks/data';
 import { Avatar, Spinner, EmptyState } from '../components/Common';
 import { ChallengeComposerModal } from './ChallengeComposerModal';
 
@@ -23,19 +22,21 @@ export function GuildRosterView({
 
   const rosterState = useAsync(
     async () => {
-      const result = await api.friends.listAccepted().catch(() => MOCK_FRIENDSHIPS);
-      const friends = result.map((f) =>
-        f.requesterId === "u-000" ? f.addressee! : f.requester!
-      );
+      const friends = await api.friends.listAccepted();
       onFriendsChange(friends);
-      return result;
+      return friends;
     },
-    MOCK_FRIENDSHIPS
+    []
   );
 
   const pendingState = useAsync(
-    () => api.friends.listPending().catch(() => MOCK_PENDING),
-    MOCK_PENDING
+    () => api.friends.listPending(),
+    []
+  );
+
+  const catState = useAsync(
+    () => api.challenges.listCategories(),
+    []
   );
 
   // Debounced search
@@ -48,8 +49,7 @@ export function GuildRosterView({
         const results = await api.friends.search(searchQuery);
         setSearchResults(results);
       } catch {
-        // Mock search result
-        setSearchResults([{ id: "u-mock", username: searchQuery.toLowerCase(), displayName: searchQuery, avatarUrl: "", xp: 0, createdAt: "" }]);
+        setSearchResults([]);
       }
       setSearching(false);
     }, 400);
@@ -58,32 +58,44 @@ export function GuildRosterView({
   const handleSendInvite = async (username: string) => {
     try {
       await api.friends.sendInvite(username);
-    } catch (_) { /* mock ok */ }
-    onToast("Guild Invite dispatched!");
-    setSearchQuery("");
-    setSearchResults([]);
+      onToast("Guild Invite dispatched!");
+      setSearchQuery("");
+      setSearchResults([]);
+    } catch (error: any) {
+      onToast(error.message ?? "Failed to send guild invite.");
+    }
   };
 
   const handleRespond = async (f: Friendship, status: "accepted" | "declined") => {
     try {
       await api.friends.respond(f.id, status);
-    } catch (_) { /* mock ok */ }
+    } catch (error: any) {
+      onToast(error.message ?? "Failed to update guild invite.");
+      return;
+    }
     pendingState.setData((prev) => prev.filter((p) => p.id !== f.id));
     if (status === "accepted") {
-      rosterState.setData((prev) => [...prev, { ...f, status: "accepted" }]);
+      rosterState.setData((prev) => {
+        if (!f.requester) {
+          return prev;
+        }
+        const next = prev.some((user) => user.id === f.requester!.id)
+          ? prev
+          : [...prev, f.requester];
+        onFriendsChange(next);
+        return next;
+      });
       onToast(`${f.requester?.displayName} joined your guild!`);
     } else {
       onToast("Invite declined.");
     }
   };
 
-  const rosterFriends = rosterState.data.map((f) =>
-    f.requesterId === "u-000" ? f.addressee! : f.requester!
-  );
+  const rosterFriends = rosterState.data;
   const pendingCount = pendingState.data.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
       <div style={{ padding: "24px 20px 0" }}>
         <h1 style={{ fontFamily: "'Cinzel', serif", fontWeight: 900, fontSize: 26, lineHeight: 1.1, marginBottom: 4 }} className="gold-text">
           Guild Roster
@@ -216,7 +228,7 @@ export function GuildRosterView({
       {composerOpen && (
         <ChallengeComposerModal
           friends={rosterFriends}
-          categories={MOCK_CATEGORIES}
+          categories={catState.data}
           preselectedFriendId={composerFriendId}
           onClose={() => setComposerOpen(false)}
           onSent={() => {

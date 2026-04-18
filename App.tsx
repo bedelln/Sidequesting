@@ -45,6 +45,15 @@ export default function App() {
     return () => clearInterval(interval);
   }, [currentUser]);
 
+  useEffect(() => {
+    if (!currentUser) {
+      setFriends([]);
+      return;
+    }
+
+    api.friends.listAccepted().then(setFriends).catch(() => {});
+  }, [currentUser]);
+
   // Check for existing authentication token on initial load.
   useEffect(() => {
     const token = localStorage.getItem("sq_token");
@@ -81,12 +90,26 @@ export default function App() {
     setXpFloats((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
+  const appShellStyle: React.CSSProperties = {
+    position: "relative",
+    zIndex: 1,
+    display: "flex",
+    flexDirection: "column",
+    height: "100svh",
+    width: "100%",
+    maxWidth: 600,
+    margin: "0 auto",
+    overflow: "hidden",
+  };
+
   if (!isReady) return <div style={{ height: "100%", display: "flex", alignItems: "center" }}><Spinner /></div>;
 
   if (!currentUser) return (
     <>
       <GlobalStyles />
-      <AuthView onAuthSuccess={handleAuthSuccess} />
+      <div style={appShellStyle}>
+        <AuthView onAuthSuccess={handleAuthSuccess} />
+      </div>
       {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </>
   );
@@ -104,12 +127,7 @@ export default function App() {
         `,
       }} />
 
-      <div style={{
-        position: "relative", zIndex: 1,
-        display: "flex", flexDirection: "column",
-        height: "100svh", maxWidth: 600, margin: "0 auto",
-        overflow: "hidden",
-      }}>
+      <div style={appShellStyle}>
         {/* Views */}
         <div style={{ flex: 1, overflow: "hidden", position: "relative" }}>
           {tab === "quests" && (

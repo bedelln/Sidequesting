@@ -17,5 +17,8 @@
   "include": [
     "src"
   ],
-  "extends": "expo/tsconfig.base"
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }

@@ -1,120 +1,259 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { User } from '../types';
-import { XpBadge } from '../components/Common';
 
 /**
- * The ProfileView displays the user's progress, including level, XP, and stats.
+ * The ProfileView displays the user's progress in a card-based layout inspired by
+ * the original concept while keeping the live XP, training, and logout behavior.
  */
-export function ProfileView({ currentUser, onXpGain }: { currentUser: User; onXpGain: (xp: number, x: number, y: number) => void }) {
+export function ProfileView({
+  currentUser,
+  onXpGain,
+}: {
+  currentUser: User;
+  onXpGain: (xp: number, x: number, y: number) => void;
+}) {
   const [xp, setXp] = useState(currentUser.xp);
   const [displayXp, setDisplayXp] = useState(0);
   const animRef = useRef<ReturnType<typeof setInterval>>();
 
-  // Animate the XP counter from 0 to the target value when the component mounts or XP changes.
+  useEffect(() => {
+    setXp(currentUser.xp);
+  }, [currentUser.xp]);
+
   useEffect(() => {
     let current = 0;
     const target = xp;
-    const step = Math.ceil(target / 60);
+    const step = Math.max(1, Math.ceil(target / 60));
+
     animRef.current = setInterval(() => {
       current = Math.min(current + step, target);
       setDisplayXp(current);
-      if (current >= target) clearInterval(animRef.current);
+      if (current >= target) {
+        clearInterval(animRef.current);
+      }
     }, 16);
+
     return () => clearInterval(animRef.current);
   }, [xp]);
 
-  // Calculate level based on XP (500 XP per level)
   const level = Math.floor(xp / 500) + 1;
   const xpIntoLevel = xp % 500;
   const xpPct = Math.round((xpIntoLevel / 500) * 100);
+  const xpToNextLevel = Math.max(0, 500 - xpIntoLevel);
 
-  // Mocked stats for display
-  const stats = [
-    { label: "Quests Finished", value: "24", icon: "✅" },
-    { label: "Guild Rank", value: "Knight", icon: "⚔️" },
-    { label: "Success Rate", value: "92%", icon: "📈" },
+  const statCards = [
+    { label: "Level", value: `${level}`, icon: "🏅" },
+    { label: "Total XP", value: `${displayXp}`, icon: "⚔️" },
+    { label: "Next Level", value: `${xpToNextLevel}`, icon: "🔥" },
   ];
 
-  /**
-   * For demonstration: gain some XP manually and trigger the animation.
-   */
+  const recentDeeds = [
+    {
+      icon: "✅",
+      title: `Holding steady at Level ${level}`,
+      subtitle: `${xpToNextLevel} XP until Level ${level + 1}`,
+    },
+    {
+      icon: "⚔️",
+      title: `Current XP stands at ${displayXp}`,
+      subtitle: `Progress bar is ${xpPct}% full`,
+    },
+    {
+      icon: "📜",
+      title: "Account forged and ready for sidequests",
+      subtitle: `Joined ${new Date(currentUser.createdAt).toLocaleDateString()}`,
+    },
+    {
+      icon: "✨",
+      title: "Training grants 10 XP instantly",
+      subtitle: "Use it to test the live XP animation",
+    },
+  ];
+
   const handleManualXp = (e: React.MouseEvent) => {
     onXpGain(10, e.clientX, e.clientY);
     setXp((prev) => prev + 10);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", overflowY: "auto" }}>
-      <div style={{ padding: "40px 24px 24px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-        {/* Avatar & Level */}
-        <div style={{ position: "relative", marginBottom: 20 }}>
-          <div style={{
-            width: 100, height: 100, borderRadius: "50%",
-            background: "linear-gradient(135deg, var(--gold), var(--gold-dim))",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 40, color: "#0d0d1a", fontWeight: 900, fontFamily: "'Cinzel', serif",
-            boxShadow: "var(--glow-gold)", border: "4px solid var(--obsidian-mid)",
-          }}>
-            {currentUser.displayName[0]}
-          </div>
-          <div style={{
-            position: "absolute", bottom: -4, right: -4,
-            width: 36, height: 36, borderRadius: "50%", background: "var(--teal)",
-            color: "#0d0d1a", display: "flex", alignItems: "center", justifyContent: "center",
-            fontWeight: 900, border: "3px solid var(--obsidian-mid)", fontSize: 14,
-          }}>
-            {level}
-          </div>
-        </div>
-
-        <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-          {currentUser.displayName}
-        </h2>
-        <p style={{ color: "var(--muted)", fontSize: 14, marginBottom: 24 }}>@{currentUser.username}</p>
-
-        {/* Level Progress */}
-        <div style={{ width: "100%", maxWidth: 320, marginBottom: 32 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 8, fontFamily: "'Cinzel', serif" }}>
-            <span style={{ color: "var(--gold)" }}>LEVEL {level}</span>
-            <span style={{ color: "var(--muted)" }}>{xpIntoLevel} / 500 XP</span>
-          </div>
-          <div style={{ height: 10, background: "rgba(255,255,255,0.06)", borderRadius: 5, overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-            <div style={{
-              height: "100%", width: `${xpPct}%`,
-              background: "linear-gradient(90deg, var(--gold-dim), var(--gold))",
-              boxShadow: "0 0 10px rgba(240,192,64,0.4)",
-              transition: "width 0.4s ease-out",
-            }} />
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, width: "100%", marginBottom: 32 }}>
-          {stats.map((s) => (
-            <div key={s.label} className="card" style={{ padding: "16px 8px" }}>
-              <div style={{ fontSize: 20, marginBottom: 6 }}>{s.icon}</div>
-              <div style={{ fontFamily: "'Cinzel', serif", fontWeight: 700, fontSize: 16, color: "var(--parchment)" }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 2 }}>{s.label}</div>
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflowY: "auto" }}>
+      <div style={{ minHeight: "100%", padding: "28px 20px 24px" }}>
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
+          <div
+            className="card"
+            style={{
+              padding: "26px 22px 22px",
+              textAlign: "center",
+              background: "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+            }}
+          >
+            <div style={{ position: "relative", width: 92, margin: "0 auto 18px" }}>
+              <div
+                style={{
+                  width: 92,
+                  height: 92,
+                  borderRadius: "50%",
+                  background: "linear-gradient(135deg, #e16464, #f0c040)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 34,
+                  color: "#191523",
+                  fontWeight: 900,
+                  fontFamily: "'Cinzel', serif",
+                  boxShadow: "0 10px 26px rgba(0,0,0,0.35)",
+                }}
+              >
+                {currentUser.displayName[0]}
+              </div>
+              <div
+                style={{
+                  position: "absolute",
+                  right: -2,
+                  bottom: 2,
+                  background: "linear-gradient(135deg, var(--gold), #fde89a)",
+                  color: "#191523",
+                  fontFamily: "'Cinzel', serif",
+                  fontWeight: 900,
+                  fontSize: 11,
+                  padding: "4px 9px",
+                  borderRadius: 999,
+                  border: "2px solid var(--obsidian-mid)",
+                }}
+              >
+                LV.{level}
+              </div>
             </div>
-          ))}
+
+            <div style={{ fontFamily: "'Cinzel', serif", fontWeight: 700, fontSize: 22, marginBottom: 4 }}>
+              {currentUser.displayName}
+            </div>
+            <div style={{ color: "var(--muted)", fontSize: 13, marginBottom: 14 }}>@{currentUser.username}</div>
+
+            <div
+              className="gold-text"
+              style={{ fontFamily: "'Cinzel', serif", fontWeight: 900, fontSize: 20, marginBottom: 2 }}
+            >
+              {displayXp}
+            </div>
+            <div
+              style={{
+                color: "var(--gold)",
+                fontFamily: "'Cinzel', serif",
+                fontWeight: 700,
+                fontSize: 12,
+                letterSpacing: "0.08em",
+                marginBottom: 18,
+              }}
+            >
+              XP
+            </div>
+
+            <div style={{ width: "100%", maxWidth: 250, margin: "0 auto" }}>
+              <div
+                style={{
+                  height: 6,
+                  background: "rgba(255,255,255,0.06)",
+                  borderRadius: 999,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${xpPct}%`,
+                    background: "linear-gradient(90deg, var(--gold-dim), var(--gold))",
+                    boxShadow: "0 0 10px rgba(240,192,64,0.4)",
+                    transition: "width 0.4s ease-out",
+                  }}
+                />
+              </div>
+              <div style={{ color: "var(--muted)", fontSize: 11, marginTop: 8 }}>
+                {xpIntoLevel} / 500 XP to Level {level + 1}
+              </div>
+            </div>
+          </div>
+
+          <div className="separator" />
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {statCards.map((card) => (
+              <div key={card.label} className="card" style={{ padding: "14px 8px", textAlign: "center" }}>
+                <div style={{ fontSize: 20, marginBottom: 8 }}>{card.icon}</div>
+                <div
+                  style={{
+                    fontFamily: "'Cinzel', serif",
+                    fontWeight: 700,
+                    fontSize: 18,
+                    color: "var(--gold)",
+                  }}
+                >
+                  {card.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: "var(--muted)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    marginTop: 4,
+                  }}
+                >
+                  {card.label}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <div
+              style={{
+                fontFamily: "'Cinzel', serif",
+                fontWeight: 700,
+                fontSize: 15,
+                color: "var(--gold)",
+                marginBottom: 12,
+              }}
+            >
+              ⚔ Recent Deeds
+            </div>
+            <div className="card" style={{ padding: "8px 16px" }}>
+              {recentDeeds.map((deed, index) => (
+                <div
+                  key={deed.title}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    padding: "12px 0",
+                    borderBottom: index < recentDeeds.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                  }}
+                >
+                  <div style={{ fontSize: 18, lineHeight: 1 }}>{deed.icon}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: "var(--parchment)", fontSize: 13, fontWeight: 700 }}>{deed.title}</div>
+                    <div style={{ color: "var(--muted)", fontSize: 11, marginTop: 2 }}>{deed.subtitle}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button className="btn-gold" style={{ width: "100%" }} onClick={handleManualXp}>
+            ✨ Train (Gain 10 XP)
+          </button>
+
+          <button
+            className="btn-ghost"
+            style={{ width: "100%", color: "var(--danger)", borderColor: "rgba(224,85,85,0.2)" }}
+            onClick={() => {
+              localStorage.removeItem("sq_token");
+              window.location.reload();
+            }}
+          >
+            Logout
+          </button>
         </div>
-
-        <button className="btn-gold" style={{ width: "100%", maxWidth: 320 }} onClick={handleManualXp}>
-          ✨ Train (Gain 10 XP)
-        </button>
-
-        <div className="separator" style={{ width: "100%", margin: "40px 0" }} />
-
-        <button
-          className="btn-ghost"
-          style={{ width: "100%", maxWidth: 320, color: "var(--danger)", borderColor: "rgba(224,85,85,0.2)" }}
-          onClick={() => {
-            localStorage.removeItem("sq_token");
-            window.location.reload();
-          }}
-        >
-          Logout
-        </button>
       </div>
     </div>
   );

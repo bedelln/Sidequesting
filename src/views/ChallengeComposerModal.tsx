@@ -21,35 +21,57 @@ export function ChallengeComposerModal({
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [xpOverride, setXpOverride] = useState<string>("");
+  const [xpOverride, setXpOverride] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
+  const resolvedXpReward = xpOverride ? parseInt(xpOverride, 10) : selectedCategory?.xpReward ?? 0;
 
   const toggleFriend = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
 
   const handleSubmit = async () => {
-    if (!title.trim()) { setError("Your quest needs a title, Adventurer."); return; }
-    if (!description.trim()) { setError("Describe the quest clearly."); return; }
-    if (selectedIds.size === 0) { setError("Select at least one ally to challenge."); return; }
+    if (!categoryId) {
+      setError("Quest types are still loading. Try again in a moment.");
+      return;
+    }
+    if (!title.trim()) {
+      setError("Your quest needs a title, Adventurer.");
+      return;
+    }
+    if (!description.trim()) {
+      setError("Describe the quest clearly.");
+      return;
+    }
+    if (selectedIds.size === 0) {
+      setError("Select at least one ally to challenge.");
+      return;
+    }
+    if (!Number.isInteger(resolvedXpReward) || resolvedXpReward <= 0) {
+      setError("XP reward must be a positive whole number.");
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
+
     try {
-      const xpReward = xpOverride ? parseInt(xpOverride) : selectedCategory?.xpReward;
       await api.challenges.create({
         recipientIds: Array.from(selectedIds),
         categoryId,
         title: title.trim(),
         description: description.trim(),
-        xpReward,
+        xpReward: resolvedXpReward,
       });
       onSent();
     } catch (e: any) {
@@ -78,7 +100,7 @@ export function ChallengeComposerModal({
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
           <h2 style={{ fontFamily: "'Cinzel', serif", fontWeight: 700, fontSize: 20 }} className="gold-text">
-            ⚔️ Issue a Sidequest
+            ⚔ Issue a Sidequest
           </h2>
           <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: 18 }} onClick={onClose}>✕</button>
         </div>
@@ -132,6 +154,24 @@ export function ChallengeComposerModal({
             resize: "none",
           }}
         />
+
+        <label style={{ display: "block", fontSize: 12, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 8 }}>
+          XP REWARD
+        </label>
+        <input
+          value={xpOverride}
+          onChange={(e) => setXpOverride(e.target.value.replace(/[^0-9]/g, ""))}
+          placeholder={selectedCategory ? `${selectedCategory.xpReward}` : "25"}
+          inputMode="numeric"
+          style={{
+            width: "100%", background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 12, padding: "12px 16px", color: "var(--parchment)", fontSize: 14, marginBottom: 8,
+          }}
+        />
+        <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 20 }}>
+          This reward is added to the challenged player&apos;s points after they complete the quest.
+          Current reward: <span style={{ color: "var(--gold)", fontWeight: 700 }}>{resolvedXpReward} XP</span>
+        </div>
 
         <label style={{ display: "block", fontSize: 12, color: "var(--muted)", fontWeight: 700, letterSpacing: "0.08em", marginBottom: 8 }}>
           CHALLENGE ALLIES
@@ -188,7 +228,7 @@ export function ChallengeComposerModal({
           onClick={handleSubmit}
           disabled={submitting}
         >
-          {submitting ? "Dispatching..." : "⚔️ Dispatch Quest"}
+          {submitting ? "Dispatching..." : "⚔ Dispatch Quest"}
         </button>
       </div>
     </div>

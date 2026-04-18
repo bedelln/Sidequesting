@@ -9,8 +9,9 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "db:setup": "node scripts/setup-sqlite.mjs",
+    "prisma:seed": "node scripts/setup-sqlite.mjs --seed-only",
+    "setup:dev": "npm run prisma:generate && npm run db:setup"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -30,6 +30,12 @@ async function apiFetch<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      localStorage.removeItem("sq_token");
+      if (!path.startsWith("/auth/")) {
+        window.location.reload();
+      }
+    }
     throw new Error(err.message ?? `HTTP ${res.status}`);
   }
   return res.json();
@@ -59,7 +65,7 @@ export const api = {
    */
   friends: {
     listAccepted: () =>
-        apiFetch<{ friends: Friendship[] }>("/friendships?status=accepted").then(res => res.friends),
+        apiFetch<{ friends: User[] }>("/friendships?status=accepted").then(res => res.friends),
     listPending: () =>
         apiFetch<{ requests: Friendship[] }>("/friendships?status=pending").then(res => res.requests),
     sendInvite: (addresseeUsername: string) =>
@@ -100,7 +106,7 @@ export const api = {
           method: "POST",
         }).then(res => res.challenge),
     me: () =>
-        apiFetch<User>("/users/me"),
+        apiFetch<{ user: User }>("/users/me").then(res => res.user),
   },
   /**
    * Leaderboard (Hall of Fame) endpoints.

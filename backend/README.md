@@ -3,7 +3,7 @@
 Backend foundation for the SideQuesters mobile app. This backend covers the 25% milestone only:
 
 - runnable Express server
-- PostgreSQL connected through Prisma
+- Prisma-backed local database for development
 - `User` model
 - register/login flow
 - JWT-protected `GET /api/users/me`
@@ -56,36 +56,30 @@ Fill in these values in `.env`:
 
 ```env
 PORT=4000
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sidequesters?schema=public"
-JWT_SECRET="replace-with-a-long-random-secret"
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="replace-with-a-long-random-secret-at-least-32-chars"
 ```
 
 `JWT_SECRET` should be a long random string, at least 32 characters.
 
 ## Create the Database
 
-Create a PostgreSQL database named `sidequesters`.
-
-Example using `psql`:
-
-```sql
-CREATE DATABASE sidequesters;
-```
-
-Then update `DATABASE_URL` in `.env` if your username, password, host, or port are different.
+No external database is required for local development. The setup script creates a SQLite file at
+`backend/prisma/dev.db`.
 
 ## Prisma Setup
 
-Generate the Prisma client:
+One command will generate the client, create the local database, and seed challenge categories:
+
+```bash
+npm run setup:dev
+```
+
+Or run the steps individually:
 
 ```bash
 npm run prisma:generate
-```
-
-Create and apply the first migration:
-
-```bash
-npm run prisma:migrate -- --name init
+npm run db:setup
 ```
 
 ## Run the Server
