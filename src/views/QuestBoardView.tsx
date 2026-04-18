@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { User, QuestTab, Challenge } from '../types';
 import { useAsync } from '../hooks/useAsync';
 import { api } from '../services/api';
-import { MOCK_CATEGORIES, MOCK_INBOX, MOCK_ACTIVE } from '../mocks/data';
 import { QuestCard } from '../components/QuestCard';
 import { EmptyState } from '../components/Common';
 import { ChallengeComposerModal } from './ChallengeComposerModal';
@@ -28,18 +27,18 @@ export function QuestBoardView({
 
   // Fetch categories, inbox quests, and active quests using the useAsync hook
   const catState = useAsync(
-    () => api.challenges.listCategories().catch(() => MOCK_CATEGORIES),
-    MOCK_CATEGORIES
+    () => api.challenges.listCategories(),
+    []
   );
 
   const inboxState = useAsync(
-    () => api.challenges.inbox().catch(() => MOCK_INBOX),
-    MOCK_INBOX
+    () => api.challenges.inbox(),
+    []
   );
 
   const activeState = useAsync(
-    () => api.challenges.active().catch(() => MOCK_ACTIVE),
-    MOCK_ACTIVE
+    () => api.challenges.active(),
+    []
   );
 
   /**
@@ -48,7 +47,10 @@ export function QuestBoardView({
   const handleAccept = async (q: Challenge, e: React.MouseEvent) => {
     try {
       await api.challenges.respond(q.id, "accepted");
-    } catch (_) { /* mock ok */ }
+    } catch (error: any) {
+      onToast(error.message ?? "Failed to accept quest.");
+      return;
+    }
     // Update local state to reflect the change immediately
     inboxState.setData((prev) => prev.filter((c) => c.id !== q.id));
     activeState.setData((prev) => [...prev, { ...q, recipientStatus: "accepted" }]);
@@ -61,7 +63,10 @@ export function QuestBoardView({
   const handleDecline = async (q: Challenge) => {
     try {
       await api.challenges.respond(q.id, "declined");
-    } catch (_) { /* mock ok */ }
+    } catch (error: any) {
+      onToast(error.message ?? "Failed to decline quest.");
+      return;
+    }
     inboxState.setData((prev) => prev.filter((c) => c.id !== q.id));
     onToast("Quest declined. Seek worthier challenges.");
   };
@@ -72,7 +77,10 @@ export function QuestBoardView({
   const handleComplete = async (q: Challenge, e: React.MouseEvent) => {
     try {
       await api.challenges.complete(q.id);
-    } catch (_) { /* mock ok */ }
+    } catch (error: any) {
+      onToast(error.message ?? "Failed to complete quest.");
+      return;
+    }
     // Trigger XP gain animation and notify the user
     const rect = (e.target as HTMLElement).getBoundingClientRect();
     onXpGain(q.xpReward, rect.left + rect.width / 2, rect.top);
@@ -89,7 +97,7 @@ export function QuestBoardView({
     : activeState.data;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
       {/* Header */}
       <div style={{ padding: "24px 20px 0" }}>
         <h1 style={{ fontFamily: "'Cinzel', serif", fontWeight: 900, fontSize: 26, lineHeight: 1.1, marginBottom: 4 }} className="gold-text">

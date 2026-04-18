@@ -12,12 +12,12 @@ router.use(requireAuth);
 router.post("/", friendshipController.sendFriendRequest);
 
 // GET /api/friendships?status=pending - Get pending friend requests (FR-2)
-router.get("/", (req, res) => {
+router.get("/", (req, res, next) => {
   const status = req.query.status as string;
   if (status === "pending") {
-    return friendshipController.getPendingRequests(req, res);
+    return friendshipController.getPendingRequests(req, res, next);
   } else if (status === "accepted") {
-    return friendshipController.getAcceptedFriends(req, res);
+    return friendshipController.getAcceptedFriends(req, res, next);
   }
   res.status(400).json({ message: "Invalid status parameter. Use 'pending' or 'accepted'" });
 });

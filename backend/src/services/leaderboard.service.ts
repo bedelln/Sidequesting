@@ -39,7 +39,7 @@ export async function getLeaderboard(userId: string) {
   // Add rank to each entry
   const rankedLeaderboard = leaderboard.map((user, index) => ({
     rank: index + 1,
-    ...user,
+    user,
     isCurrentUser: user.id === userId
   }));
 

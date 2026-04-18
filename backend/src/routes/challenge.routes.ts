@@ -16,10 +16,16 @@ router.use(requireAuth);
 router.get("/inbox", challengeController.getIncomingChallenges);
 
 // GET /api/challenges/active - Get active challenges
-router.get("/active", challengeController.getIncomingChallenges);
+router.get("/active", challengeController.getActiveChallenges);
 
 // POST /api/challenges - Create a challenge (CH-3)
 router.post("/", challengeController.createChallenge);
+
+// POST /api/challenges/:challengeId/respond - Accept or decline a challenge for the current user
+router.post("/:challengeId/respond", challengeController.respondToChallenge);
+
+// POST /api/challenges/:challengeId/complete - Complete a challenge for the current user
+router.post("/:challengeId/complete", challengeController.completeChallenge);
 
 // PATCH /api/challenges/:challengeId/recipients/:recipientId - Update recipient status (CH-4)
 router.patch("/:challengeId/recipients/:recipientId", challengeController.updateChallengeRecipientStatus);

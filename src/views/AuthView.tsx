@@ -46,7 +46,7 @@ export function AuthView({ onAuthSuccess }: { onAuthSuccess: (user: User) => voi
   return (
     <div style={{
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-      height: "100%", padding: 32, gap: 24, textAlign: "center"
+      width: "100%", height: "100%", padding: 32, gap: 24, textAlign: "center"
     }}>
       <div style={{ marginBottom: 12 }}>
         <h1 style={{ fontFamily: "'Cinzel', serif", fontSize: 32, fontWeight: 900 }} className="gold-text">

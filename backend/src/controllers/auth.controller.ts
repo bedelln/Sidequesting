@@ -4,11 +4,11 @@ import { loginUser, registerUser } from "../services/auth.service";
 
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
-    const user = await registerUser(req.body);
+    const result = await registerUser(req.body);
 
     res.status(201).json({
       message: "Registration successful",
-      user
+      ...result
     });
   } catch (error) {
     next(error);
