@@ -2,6 +2,11 @@ import { NextFunction, Request, Response } from "express";
 
 import * as challengeService from "../services/challenge.service";
 
+/**
+ * RECENT DEEDS CHANGE: Added getRecentCompletedChallenges controller.
+ * To revert: Remove this function and related route.
+ */
+
 export async function getChallengeCategories(_req: Request, res: Response, next: NextFunction) {
   try {
     const categories = await challengeService.getChallengeCategories();
@@ -35,6 +40,16 @@ export async function getActiveChallenges(req: Request, res: Response, next: Nex
   try {
     const userId = req.userId!;
     const challenges = await challengeService.getActiveChallenges(userId);
+    res.json({ challenges });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getRecentCompletedChallenges(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = req.userId!;
+    const challenges = await challengeService.getRecentCompletedChallenges(userId, 3);
     res.json({ challenges });
   } catch (error) {
     next(error);

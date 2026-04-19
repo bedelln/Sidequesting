@@ -1,53 +1,92 @@
-# Welcome to your Expo app 👋
+# Sidequesting ⚔️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+*Embark upon a grand adventure of friendship and challenge! Forge alliances, accept noble quests, and rise through the ranks of legendary adventurers in this realm of gamified glory.*
 
-## Get started
+## 🏰 The Chronicles of Sidequesting
 
-1. Install dependencies
+### 📜 The Quest Board
+- **Craft Legendary Challenges**: Weave tales of valor and issue sidequests to your fellow adventurers
+- **Choose Your Path**: Select from sacred categories of challenge:
+  - 💪 **Fitness** - Test your physical prowess
+  - 🦁 **Courage** - Face your fears with bravery
+  - 🎨 **Creativity** - Unleash your artistic magic
+  - 📚 **Wisdom** - Seek knowledge and enlightenment
+  - 🤝 **Social** - Forge bonds with your companions
+  - 🗺️ **Adventure** - Venture into the unknown
+- **Command Your Destiny**: Send quests to one or many allies at once to gain XP and level up
 
+### 🛡️ The Guild Roster
+- **Seek Companions**: Scour the realm for worthy adventurers by name
+- **Form Alliances**: Send scrolls of friendship and await their response
+- **Manage Your Fellowship**: Accept or decline requests from potential allies
+- **Behold Your Guild**: View the roster of your trusted companions
+
+### 🏆 The Hall of Fame
+- **Earn Glory**: Accumulate experience points through completed quests
+- **Ascend the Rankings**: Witness your rise among your fellow adventurers
+- **Celebrate Victories**: Behold the animated glow of your growing power
+
+## ⚡ Getting Started
+
+### Prerequisites
+- Node.js 16+ and npm
+
+### Setup
+
+1. **Install dependencies**
    ```bash
    npm install
+   cd backend
+   npm install
+   cd ..
    ```
 
-2. Start the app
+2. **Configure environment variables**
+   
+   Copy the example environment file and update the JWT secret:
+   
+   ```bash
+   cd backend
+   cp .env.example .env
+   ```
+   
+   Edit `backend/.env` and replace the JWT_SECRET with a long random string (at least 32 characters):
+   ```
+   JWT_SECRET="your-long-random-secret-here-at-least-32-chars"
+   ```
 
+3. **Initialize the database**
+   ```bash
+   cd backend
+   npm run setup:dev
+   cd ..
+   ```
+
+4. **Start the application**
+
+   Open two terminals:
+
+   **Terminal 1** (Backend):
    ```bash
    cd backend
    npm run dev
-   cd ..
+   ```
+
+   **Terminal 2** (Frontend):
+   ```bash
    npm run web
    ```
 
-In the output, you'll find options to open the app in a
+   The app will open at `http://localhost:8081`
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Your First Steps in the Realm
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+1. **Create Your Legend**: Register with a username, email, and display name worthy of song
+2. **Seek Fellowship**: Search for companions and send scrolls of friendship
+3. **Begin Your Odyssey**: Once allies accept, commence the creation of quests and the earning of glory!
 
-## Get a fresh project
+### First Time
 
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Create an account with a username, email, and display name
+2. Search for your friends and send them friend requests
+3. Once they accept, you can start creating quests for each other!

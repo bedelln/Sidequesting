@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useAsync } from '../hooks/useAsync';
+import { api } from '../services/api';
 import { User } from '../types';
 
-/**
- * The ProfileView displays the user's progress in a card-based layout inspired by
- * the original concept while keeping the live XP display and logout behavior.
- */
 export function ProfileView({
   currentUser,
 }: {
@@ -45,23 +43,30 @@ export function ProfileView({
     { label: "Next Level", value: `${xpToNextLevel}`, icon: "🔥" },
   ];
 
-  const recentDeeds = [
-    {
-      icon: "✅",
-      title: `Holding steady at Level ${level}`,
-      subtitle: `${xpToNextLevel} XP until Level ${level + 1}`,
-    },
-    {
-      icon: "⚔️",
-      title: `Current XP stands at ${displayXp}`,
-      subtitle: `Progress bar is ${xpPct}% full`,
-    },
+  // Fetch recent completed challenges
+  const recentDeedsState = useAsync(
+    () => api.challenges.recentCompleted(),
+    []
+  );
+
+  // Format recent deeds for display
+  const recentDeeds = recentDeedsState.data?.map((deed: any) => ({
+    icon: deed.category?.icon || "⚔️",
+    title: deed.title,
+    description: deed.description || "No description provided.",
+    subtitle: `+${deed.xpReward} XP • ${new Date(deed.completedAt).toLocaleDateString()}`,
+  })) || [];
+
+  // Fallback if no completed quests yet
+  const fallbackDeeds = [
     {
       icon: "📜",
-      title: "Account forged and ready for sidequests",
-      subtitle: `Joined ${new Date(currentUser.createdAt).toLocaleDateString()}`,
+      title: "No completed quests yet",
+      subtitle: "Complete some challenges to see your recent deeds!",
     },
   ];
+
+  const displayDeeds = recentDeeds.length > 0 ? recentDeeds : fallbackDeeds;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%", overflowY: "auto" }}>
@@ -206,7 +211,7 @@ export function ProfileView({
               ⚔ Recent Deeds
             </div>
             <div className="card" style={{ padding: "8px 16px" }}>
-              {recentDeeds.map((deed, index) => (
+              {displayDeeds.map((deed, index) => (
                 <div
                   key={deed.title}
                   style={{
@@ -214,13 +219,14 @@ export function ProfileView({
                     alignItems: "flex-start",
                     gap: 12,
                     padding: "12px 0",
-                    borderBottom: index < recentDeeds.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+                    borderBottom: index < displayDeeds.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
                   }}
                 >
                   <div style={{ fontSize: 18, lineHeight: 1 }}>{deed.icon}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ color: "var(--parchment)", fontSize: 13, fontWeight: 700 }}>{deed.title}</div>
-                    <div style={{ color: "var(--muted)", fontSize: 11, marginTop: 2 }}>{deed.subtitle}</div>
+                    <div style={{ color: "var(--muted)", fontSize: 11, marginTop: 2, whiteSpace: "pre-wrap" }}>{deed.description}</div>
+                    <div style={{ color: "var(--muted)", fontSize: 10, marginTop: 4 }}>{deed.subtitle}</div>
                   </div>
                 </div>
               ))}
