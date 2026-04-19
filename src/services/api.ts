@@ -1,4 +1,4 @@
-import { User, Friendship, Challenge, ChallengeCategory, LeaderboardEntry, Group } from "../types";
+import { Challenge, ChallengeCategory, Friendship, Group, LeaderboardEntry, User } from "../types";
 
 /**
  * Base URL for the API. In a real app, this would come from an environment variable.
@@ -91,6 +91,8 @@ export const api = {
         apiFetch<{ challenges: Challenge[] }>("/challenges/inbox").then(res => res.challenges),
     active: () =>
         apiFetch<{ challenges: Challenge[] }>("/challenges/active").then(res => res.challenges),
+    recentCompleted: () =>
+        apiFetch<{ challenges: any[] }>("/challenges/recent-completed").then(res => res.challenges),
     create: (payload: any) =>
         apiFetch<{ challenge: Challenge }>("/challenges", {
           method: "POST",

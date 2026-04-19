@@ -3,6 +3,11 @@ import { Router } from "express";
 import * as challengeController from "../controllers/challenge.controller";
 import { requireAuth } from "../middleware/auth.middleware";
 
+/**
+ * RECENT DEEDS CHANGE: Added /recent-completed route.
+ * To revert: Remove this route.
+ */
+
 const router = Router();
 
 // GET /api/challenge-categories - Get all challenge categories (CH-1)
@@ -17,6 +22,9 @@ router.get("/inbox", challengeController.getIncomingChallenges);
 
 // GET /api/challenges/active - Get active challenges
 router.get("/active", challengeController.getActiveChallenges);
+
+// GET /api/challenges/recent-completed - Get recent completed challenges
+router.get("/recent-completed", challengeController.getRecentCompletedChallenges);
 
 // POST /api/challenges - Create a challenge (CH-3)
 router.post("/", challengeController.createChallenge);

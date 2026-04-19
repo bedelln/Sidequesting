@@ -3,12 +3,17 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { ApiError } from "../utils/errors";
 
+/**
+ * RECENT DEEDS CHANGE: Added getRecentCompletedChallenges function for ProfileView.
+ * To revert: Remove this function and related controller/route/API calls.
+ */
+
 const createChallengeSchema = z.object({
   recipientIds: z.array(z.string()).min(1, "At least one recipient is required"),
   categoryId: z.string().min(1, "Category ID is required"),
   title: z.string().trim().min(1, "Title is required").max(100),
   description: z.string().trim().min(1, "Description is required").max(500),
-  xpReward: z.number().int().positive().optional(),
+  xpReward: z.number().int().min(1).max(50).optional(),
   expiresAt: z.string().datetime().optional()
 });
 
@@ -271,6 +276,35 @@ export async function respondToChallenge(challengeId: string, userId: string, in
 
 export async function completeChallenge(challengeId: string, userId: string) {
   return updateChallengeStatusForCurrentUser(challengeId, userId, "completed");
+}
+
+export async function getRecentCompletedChallenges(userId: string, limit: number = 3) {
+  const challengeRecipients = await prisma.challengeRecipient.findMany({
+    where: {
+      recipientId: userId,
+      status: "completed"
+    },
+    include: {
+      challenge: {
+        include: {
+          category: true
+        }
+      }
+    },
+    orderBy: {
+      completedAt: "desc"
+    },
+    take: limit
+  });
+
+  return challengeRecipients.map((cr) => ({
+    id: cr.challenge.id,
+    title: cr.challenge.title,
+    description: cr.challenge.description,
+    xpReward: cr.challenge.xpReward,
+    completedAt: cr.completedAt,
+    category: cr.challenge.category
+  }));
 }
 
 export async function updateChallengeRecipientStatus(
