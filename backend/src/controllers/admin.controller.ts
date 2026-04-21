@@ -22,7 +22,7 @@ export async function handleListUsers(req: Request, res: Response, next: NextFun
 
 export async function handleGetUserDetail(req: Request, res: Response, next: NextFunction) {
   try {
-    const { userId } = req.params;
+    const { userId } = req.params as { userId: string };
     const result = await getUserDetail(userId);
     res.status(200).json(result);
   } catch (error) {
@@ -32,7 +32,7 @@ export async function handleGetUserDetail(req: Request, res: Response, next: Nex
 
 export async function handleUpdateUserXp(req: Request, res: Response, next: NextFunction) {
   try {
-    const { userId } = req.params;
+    const { userId } = req.params as { userId: string };
     const { xp } = req.body;
 
     if (typeof xp !== "number") {
@@ -48,7 +48,7 @@ export async function handleUpdateUserXp(req: Request, res: Response, next: Next
 
 export async function handleDeleteUser(req: Request, res: Response, next: NextFunction) {
   try {
-    const { userId } = req.params;
+    const { userId } = req.params as { userId: string };
     const result = await deleteUser(userId);
     res.status(200).json(result);
   } catch (error) {
@@ -58,7 +58,7 @@ export async function handleDeleteUser(req: Request, res: Response, next: NextFu
 
 export async function handleDeleteChallenge(req: Request, res: Response, next: NextFunction) {
   try {
-    const { challengeId } = req.params;
+    const { challengeId } = req.params as { challengeId: string };
     const result = await deleteChallenge(challengeId);
     res.status(200).json(result);
   } catch (error) {

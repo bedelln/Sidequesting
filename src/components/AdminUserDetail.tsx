@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { User } from '../types';
 
@@ -6,11 +6,12 @@ interface AdminUserDetailProps {
   userId: string;
   onBack: () => void;
   onUserDeleted: (userId: string) => void;
+  onUserUpdated: (user: User) => void;
 }
 
 type ChallengeTab = 'sent' | 'received';
 
-export function AdminUserDetail({ userId, onBack, onUserDeleted }: AdminUserDetailProps) {
+export function AdminUserDetail({ userId, onBack, onUserDeleted, onUserUpdated }: AdminUserDetailProps) {
   const [user, setUser] = useState<User | null>(null);
   const [sentChallenges, setSentChallenges] = useState<any[]>([]);
   const [receivedChallenges, setReceivedChallenges] = useState<any[]>([]);
@@ -21,11 +22,7 @@ export function AdminUserDetail({ userId, onBack, onUserDeleted }: AdminUserDeta
   const [newXp, setNewXp] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    fetchUserDetail();
-  }, [userId]);
-
-  const fetchUserDetail = async () => {
+  const fetchUserDetail = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -39,7 +36,11 @@ export function AdminUserDetail({ userId, onBack, onUserDeleted }: AdminUserDeta
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    fetchUserDetail();
+  }, [fetchUserDetail]);
 
   const handleUpdateXp = async () => {
     try {
@@ -50,6 +51,7 @@ export function AdminUserDetail({ userId, onBack, onUserDeleted }: AdminUserDeta
       }
       const updated = await api.admin.updateUserXp(userId, xp);
       setUser(updated);
+      onUserUpdated(updated);
       setEditingXp(false);
       setError(null);
     } catch (err: any) {
