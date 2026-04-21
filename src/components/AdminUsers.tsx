@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { User } from '../types';
 import { AdminUserDetail } from './AdminUserDetail';
@@ -11,14 +11,7 @@ export function AdminUsers() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const delaySearch = setTimeout(() => {
-      fetchUsers();
-    }, 300);
-    return () => clearTimeout(delaySearch);
-  }, [search]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -30,15 +23,35 @@ export function AdminUsers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      fetchUsers();
+    }, 300);
+    return () => clearTimeout(delaySearch);
+  }, [fetchUsers]);
 
   const handleUserDelete = (userId: string) => {
     setUsers(users.filter(u => u.id !== userId));
     setTotal(total - 1);
   };
 
+  const handleUserUpdate = (updatedUser: User) => {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) => (user.id === updatedUser.id ? { ...user, ...updatedUser } : user))
+    );
+  };
+
   if (selectedUserId) {
-    return <AdminUserDetail userId={selectedUserId} onBack={() => setSelectedUserId(null)} onUserDeleted={handleUserDelete} />;
+    return (
+      <AdminUserDetail
+        userId={selectedUserId}
+        onBack={() => setSelectedUserId(null)}
+        onUserDeleted={handleUserDelete}
+        onUserUpdated={handleUserUpdate}
+      />
+    );
   }
 
   return (
